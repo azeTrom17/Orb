@@ -198,6 +198,7 @@ MonoBehaviour:
   _networkObjectCache: {fileID: 917021923}
   rb: {fileID: -4679956485287390599}
   orbPref: {fileID: 4830960591070495925, guid: 225a1b3913cfde34aa001ebbf32ca8df, type: 3}
+  playerRenderer: {fileID: 3882889277848980246}
   arsenalRenderers:
   - {fileID: 4609687759109386101}
   - {fileID: 7571689164764339803}

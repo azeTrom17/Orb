@@ -6,7 +6,7 @@ using FishNet.Object;
 using FishNet.Connection;
 using FishNet.Managing.Scened;
 using FishNet.Transporting;
-using TMPro;
+using System;
 
 public class GameManager : NetworkBehaviour
 {
@@ -15,7 +15,7 @@ public class GameManager : NetworkBehaviour
     //general GameManager code:
 
     //server variables:
-    [HideInInspector] public int[] playerNumbers { get; private set; } //checked by CharSelect
+    public int[] playerNumbers { get; private set; } //checked by CharSelect
     private readonly int[] playerIDs = new int[4];
 
     //client variables:
@@ -138,4 +138,5 @@ public class GameManager : NetworkBehaviour
     //game-specific code:
 
     private readonly string disconnectScene = "GameScene";
+    [NonSerialized] public int readyPlayers;
 }

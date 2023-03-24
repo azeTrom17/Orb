@@ -14,7 +14,7 @@ public class Orb : NetworkBehaviour
     [NonSerialized] public Player suctioningPlayer; //^
     [NonSerialized] public int color; //^
 
-    //0 = red, 1 = blue, 3 = yellow, 4 = green
+    //0 = red, 1 = blue, 2 = yellow, 3 = green
     private readonly Color32[] colors = new Color32[4];
     private readonly string[] names = new string[4];
 
