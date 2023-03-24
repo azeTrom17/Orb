@@ -3,7 +3,11 @@
 --- !u!78 &1
 TagManager:
   serializedVersion: 2
-  tags: []
+  tags:
+  - SimpleManager
+  - GameManager
+  - Orb
+  - OrbParent
   layers:
   - Default
   - TransparentFX
@@ -11,8 +15,8 @@ TagManager:
   - 
   - Water
   - UI
-  - 
-  - 
+  - Ghost
+  - Orb
   - 
   - 
   - 
@@ -38,9 +42,24 @@ TagManager:
   - 
   - 
   m_SortingLayers:
+  - name: Default
+    uniqueID: 0
+    locked: 0
   - name: Background
     uniqueID: 3430069279
     locked: 0
-  - name: Default
-    uniqueID: 0
+  - name: Terrain
+    uniqueID: 369143649
+    locked: 0
+  - name: Explosion
+    uniqueID: 2799240585
+    locked: 0
+  - name: Orb
+    uniqueID: 2385836499
+    locked: 0
+  - name: Player
+    uniqueID: 2375051981
+    locked: 0
+  - name: Menu
+    uniqueID: 2849728275
     locked: 0
