@@ -3,13 +3,13 @@ using System.Collections.Generic;
 using UnityEngine;
 using FishNet.Object;
 using FishNet.Connection;
-using System;
-using System.Runtime.CompilerServices;
 
 public class Player : NetworkBehaviour
 {
     public Rigidbody2D rb; //assigned in inspector
     public GameObject orbPref; //^
+    public SpriteRenderer[] arsenalRenderers; //^
+    public SpriteRenderer purpleOverlay; //^
     
     private Transform orbParent;
     private Vector2 orbSpawnPosition = new(-15, 0);
@@ -37,7 +37,6 @@ public class Player : NetworkBehaviour
 
     private void OnSpawn(GameManager gm)
     {
-
         if (IsOwner)
         {
             orbParent = GameObject.FindGameObjectWithTag("OrbParent").transform;
@@ -146,19 +145,51 @@ public class Player : NetworkBehaviour
 
     private void Update()
     {
-        if (Input.GetButtonDown("Red")) TriggerRed();
-        if (Input.GetButtonDown("Blue")) TriggerBlue();
-        if (Input.GetButtonDown("Yellow")) TriggerYellow();
-        if (Input.GetButtonDown("Green")) TriggerGreen();
-        if (Input.GetButtonDown("Purple")) TriggerPurple();
+        bool redInput = Input.GetButtonDown("Red");
+        bool blueInput = Input.GetButtonDown("Blue");
+        bool yellowInput = Input.GetButtonDown("Yellow");
+        bool greenInput = Input.GetButtonDown("Green");
 
-        string debugString = "";
-        for (int i = 0; i < orbsInArsenal.Count; i++)
-            debugString += orbsInArsenal[i].name + " ";
-        Debug.Log(debugString);
+        //TriggerPurple must be called before other abilities, since other abilities
+        //might empty orbsInArsenal, causing purple's ability to occur at the same time
+        if (redInput || blueInput || yellowInput || greenInput)
+            TriggerPurple();
 
+        if (redInput) TriggerRed();
+        if (blueInput) TriggerBlue();
+        if (yellowInput) TriggerYellow();
+        if (greenInput) TriggerGreen();
+
+        ArsenalDisplay();
         AttemptToCollect();
         Suction();
+    }
+
+    private void ArsenalDisplay() //run in update
+    {
+        //if orbs are in arsenal or suction is occurring, enable purple overlay
+        if (orbsInArsenal.Count == 0 && suctionInfos.Count == 0)
+        {
+            purpleOverlay.enabled = true;
+            return;
+        }
+        purpleOverlay.enabled = false;
+
+        //caches the desired changes in an array
+        bool[] spriteActiveCache = new bool[8];
+        foreach (Orb orb in orbsInArsenal)
+        {
+            // if a red (for example) orb is found in arsenal, sets the outer cone active. If
+            // the outer cone's already active, sets the inner cone active
+            if (!spriteActiveCache[orb.color])
+                spriteActiveCache[orb.color] = true;
+            else
+                spriteActiveCache[orb.color + 4] = true;
+        }
+
+        //applies the changes
+        for (int i = 0;i < 8; i++)
+            arsenalRenderers[i].enabled = spriteActiveCache[i];
     }
 
     //helper methods:

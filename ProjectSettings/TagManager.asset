@@ -57,8 +57,14 @@ TagManager:
   - name: Orb
     uniqueID: 2385836499
     locked: 0
-  - name: Player
+  - name: PlayerBack
     uniqueID: 2375051981
+    locked: 0
+  - name: PlayerCone
+    uniqueID: 4223275917
+    locked: 0
+  - name: PlayerPurple
+    uniqueID: 4065025499
     locked: 0
   - name: Menu
     uniqueID: 2849728275
