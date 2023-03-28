@@ -13,16 +13,13 @@ public class Explosion : NetworkBehaviour
 
     private void OnTriggerEnter2D(Collider2D col)
     {
-        if (IsServer)
+        if (IsServer && col.CompareTag("Player"))
         {
-            if (col.CompareTag("Player"))
-            {
-                Player newPlayer = col.GetComponent<Player>();
-                if (newPlayer != player)
-                    newPlayer.Exploded(orb);
-            }
-            else if (orb.color == 0 && col.CompareTag("Orb"))
-                player.CollectOrb(col.GetComponent<Orb>());
+            Player newPlayer = col.GetComponent<Player>();
+            if (newPlayer != player)
+                newPlayer.Exploded(orb);
         }
+        else if (orb.color == 0 && col.CompareTag("Orb"))
+            player.CollectOrb(col.GetComponent<Orb>());
     }
 }

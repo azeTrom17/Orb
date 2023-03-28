@@ -24,8 +24,7 @@ public class Player : NetworkBehaviour
     private readonly float moveDuration = .31f;
     private readonly float explosionDuration = .5f;
 
-    private bool greenSuctionOccurring; //prevents blue from occuring when green suction is occurring
-    private bool stopOccurring; //prevents purple from occurring when red or player is moving
+    private bool isStunned = true;
 
     public delegate void OnBothPlayersReadyAction();
     public static event OnBothPlayersReadyAction OnBothPlayersReady;
@@ -33,12 +32,12 @@ public class Player : NetworkBehaviour
     private void OnEnable()
     {
         GameManager.OnClientConnectOrLoad += DeclareReady;
-        OnBothPlayersReady += OnSpawn;
+        OnBothPlayersReady += RpcClientOnSpawn;
     }
     private void OnDisable()
     {
         GameManager.OnClientConnectOrLoad -= DeclareReady;
-        OnBothPlayersReady -= OnSpawn;
+        OnBothPlayersReady -= RpcClientOnSpawn;
     }
 
     private void DeclareReady(GameManager gm)
@@ -55,7 +54,13 @@ public class Player : NetworkBehaviour
     }
 
     [ObserversRpc]
-    private void OnSpawn()
+    private void RpcClientOnSpawn()
+    {
+
+        OnSpawn();
+    }
+
+    public void OnSpawn()
     {
         if (IsOwner)
         {
@@ -66,18 +71,9 @@ public class Player : NetworkBehaviour
         else
             playerRenderer.color = Color.black;
 
-        int yBoardPosition;
-        if (IsOwner && GameManager.playerNumber == 1)
-            yBoardPosition = -1;
-        else if (IsOwner || GameManager.playerNumber == 1)
-            yBoardPosition = 1;
-        else
-            yBoardPosition = -1;
+        transform.position = new Vector2(0, IsOwner ? -4 : 4);
 
-        if (GameManager.playerNumber == 2)
-            Camera.main.transform.rotation = Quaternion.Euler(0, 0, 180);
-
-        transform.SetPositionAndRotation(new Vector2(0, 4 * yBoardPosition), Camera.main.transform.rotation);
+        isStunned = false;
     }
 
     [ServerRpc]
@@ -136,7 +132,6 @@ public class Player : NetworkBehaviour
                 {
                     suctionInfos.Remove(suctionInfo);
                     newOrb.suctioningPlayer = null;
-                    greenSuctionOccurring = false;
                     rb.velocity = Vector2.zero;
                     break;
                 }
@@ -184,7 +179,7 @@ public class Player : NetworkBehaviour
         AttemptToCollect();
         Suction();
 
-        if (!IsOwner)
+        if (!IsOwner || isStunned)
             return;
 
         bool redInput = Input.GetButtonDown("Red");
@@ -206,23 +201,27 @@ public class Player : NetworkBehaviour
     private void PrepareTrigger(int color)
     {
         Vector2 mousePosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+        Orb selectedOrb = GetSelectedOrb(mousePosition);
         //check first on client
-        if (CheckCanTrigger(color, mousePosition))
-            RpcSendTrigger(color, mousePosition);
+        if (CheckCanTrigger(color, selectedOrb))
+            RpcSendTrigger(GameManager.playerNumber, color, mousePosition, selectedOrb);
     }
 
     [ServerRpc]
-    private void RpcSendTrigger(int color, Vector2 mousePosition)
+    private void RpcSendTrigger(int playerNumber, int color, Vector2 mousePosition, Orb selectedOrb)
     {
         //check again on server
-        if (CheckCanTrigger(color, mousePosition))
-            RpcReceiveTrigger(color, mousePosition);
+        if (CheckCanTrigger(color, selectedOrb))
+            RpcReceiveTrigger(playerNumber, color, mousePosition, selectedOrb);
     }
     [ObserversRpc]
-    private void RpcReceiveTrigger(int color, Vector2 mousePosition)
+    private void RpcReceiveTrigger(int playerNumber, int color, Vector2 mousePosition, Orb selectedOrb)
     {
+        //if the enemy is acting, flip  mousePosition
+        if (playerNumber != GameManager.playerNumber)
+            mousePosition *= new Vector2(1, -1);
+
         Orb newOrb = GetOrbByColor(color); //null if purple
-        Orb selectedOrb = GetSelectedOrb(mousePosition);
 
         if (color == 0) TriggerRed(newOrb, mousePosition);
         if (color == 1) TriggerBlue(newOrb, mousePosition);
@@ -231,8 +230,12 @@ public class Player : NetworkBehaviour
         if (color == 4) TriggerPurple(selectedOrb);
     }
 
-    private bool CheckCanTrigger(int color, Vector2 mousePosition)
+    private bool CheckCanTrigger(int color, Orb selectedOrb)
     {
+        //if yellow, green, or purple and no orb is selected, prevent trigger
+        if (color > 1 && selectedOrb == null)
+            return false;
+
         //if orb is purple, defer to PurpleAvailable
         if (color == 4)
             return PurpleAvailable();
@@ -241,12 +244,8 @@ public class Player : NetworkBehaviour
         if (GetOrbByColor(color) == null)
             return false;
 
-        //if blue and green suction is occurring, prevent trigger
-        if (color == 1 && greenSuctionOccurring)
-            return false;
-
-        //if yellow or green and no orb is selected, prevent trigger
-        if (color > 1 && GetSelectedOrb(mousePosition) == null)
+        //if blue or green and player is moving, prevent trigger
+        if (rb.velocity != Vector2.zero && (color == 1 || color == 3))
             return false;
 
         return true;
@@ -254,8 +253,8 @@ public class Player : NetworkBehaviour
 
     private bool PurpleAvailable() //used by CheckCanTrigger and ArsenalDisplay
     {
-        //if there are any orbs in arsenal, or currently on the way, or if player or red is moving
-        if (orbsInArsenal.Count > 0 || suctionInfos.Count > 0 || stopOccurring)
+        //if there are any orbs in arsenal, or currently on the way, or if player is moving
+        if (orbsInArsenal.Count > 0 || suctionInfos.Count > 0 || rb.velocity != Vector2.zero)
             return false;
 
         return true;
@@ -349,10 +348,8 @@ public class Player : NetworkBehaviour
 
     private IEnumerator Stop(Rigidbody2D newRb)
     {
-        stopOccurring = true;
         yield return new WaitForSeconds(moveDuration);
         newRb.velocity = Vector2.zero;
-        stopOccurring = false;
     }
 
     //ability methods:
@@ -389,7 +386,6 @@ public class Player : NetworkBehaviour
         FireOrb(newOrb);
         StartCoroutine(TriggerExplosion(newOrb));
 
-        greenSuctionOccurring = true;
         InitilizeSuction(selectedOrb, rb, selectedOrb.transform);
     }
 

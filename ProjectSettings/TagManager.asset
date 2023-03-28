@@ -8,6 +8,7 @@ TagManager:
   - GameManager
   - Orb
   - OrbParent
+  - SinglePlayer
   layers:
   - Default
   - TransparentFX
